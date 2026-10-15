@@ -12,10 +12,11 @@ import {
   X
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import api from "../api/axios.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useProducts } from "../hooks/useProducts.js";
+import CategoryRequestPanel from "../components/CategoryRequestPanel.jsx";
 
 const emptyForm = {
   name: "",
@@ -43,6 +44,13 @@ const ArtisanDashboard = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
   const [saving, setSaving] = useState(false);
+  const [categories, setCategories] = useState(["Pottery", "Textiles", "Bamboo", "Metal Craft", "Wood Craft", "Jewellery", "Home Decor", "Other"]);
+
+  useEffect(() => {
+    let alive = true;
+    api.get("/categories").then(({ data }) => { if (alive && Array.isArray(data)) setCategories(data); }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
   const formRef = useRef(null);
 
   const update = (event) => {
@@ -245,14 +253,7 @@ const ArtisanDashboard = () => {
                 <label htmlFor="product-category">Category <span>*</span></label>
                 <select id="product-category" name="category" value={form.category} onChange={update} required>
                   <option value="" disabled>Select a category</option>
-                  <option>Pottery</option>
-                  <option>Textiles</option>
-                  <option>Bamboo</option>
-                  <option>Metal Craft</option>
-                  <option>Wood Craft</option>
-                  <option>Jewellery</option>
-                  <option>Home Decor</option>
-                  <option>Other</option>
+                  {categories.map((category) => <option key={category} value={category}>{category}</option>)}
                 </select>
               </div>
               <div className="form-field">
@@ -315,6 +316,7 @@ const ArtisanDashboard = () => {
           </form>
         </section>
       </div>
+      {user?.role === "artisan" && <CategoryRequestPanel />}
     </section>
   );
 };
