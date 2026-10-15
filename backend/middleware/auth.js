@@ -11,7 +11,7 @@ const protect = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.id).select("-password");
     if (!user) return res.status(401).json({ message: "Account no longer exists" });
-    if (user.role === "artisan" && user.artisanStatus !== "approved") {
+    if (user.role === "artisan" && user.artisanStatus && user.artisanStatus !== "approved") {
       return res.status(403).json({ message: "Your artisan account is not approved" });
     }
     req.user = user;
