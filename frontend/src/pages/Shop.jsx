@@ -7,6 +7,7 @@ import { useProducts } from "../hooks/useProducts.js";
 const Shop = () => {
   const [category, setCategory] = useState("All");
   const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState("featured");
   const query = useMemo(() => {
     return {
       category: category === "All" ? undefined : category,
@@ -22,6 +23,14 @@ const Shop = () => {
       return matchesCategory && text.includes(search.toLowerCase());
     });
   }, [category, search, products]);
+
+  const sortedProducts = useMemo(() => {
+    const items = [...filtered];
+    if (sortBy === "price-low") items.sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
+    if (sortBy === "price-high") items.sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
+    if (sortBy === "name") items.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+    return items;
+  }, [filtered, sortBy]);
 
   return (
     <section className="page-section">
@@ -40,10 +49,23 @@ const Shop = () => {
         </label>
       </div>
       <CategoryFilter active={category} onChange={setCategory} />
+      <div className="shop-tools">
+        <p className="results-count">{sortedProducts.length} {sortedProducts.length === 1 ? "piece" : "pieces"} to discover</p>
+        <label>
+          <span className="sr-only">Sort products</span>
+          <select className="shop-sort" value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
+            <option value="featured">Sort: Featured</option>
+            <option value="price-low">Price: Low to high</option>
+            <option value="price-high">Price: High to low</option>
+            <option value="name">Name: A to Z</option>
+          </select>
+        </label>
+      </div>
       {loading && <p className="notice">Loading products from database...</p>}
       {error && <p className="notice">{error}</p>}
       <div className="product-grid">
-        {filtered.map((product) => <ProductCard product={product} key={product._id} />)}
+        {sortedProducts.map((product) => <ProductCard product={product} key={product._id} />)}
+        {!loading && sortedProducts.length === 0 && <div className="empty-products"><h3>No crafts found</h3><p>Try another search term or choose a different category.</p></div>}
       </div>
     </section>
   );
