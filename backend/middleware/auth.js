@@ -8,12 +8,17 @@ const protect = async (req, res, next) => {
       return res.status(401).json({ message: "Not authorized" });
     }
 
-    const token = header.split(" ")[1];
+    const token = header.slice(7).trim();
+    if (!token) return res.status(401).json({ message: "Not authorized" });
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = await User.findById(decoded.id).select("-password");
-    next();
+    const user = await User.findById(decoded.id).select("-password");
+    if (!user) return res.status(401).json({ message: "Account no longer exists" });
+
+    req.user = user;
+    return next();
   } catch (error) {
-    res.status(401).json({ message: "Token invalid or expired" });
+    return res.status(401).json({ message: "Token invalid or expired" });
   }
 };
 
@@ -21,7 +26,7 @@ const requireRole = (...roles) => (req, res, next) => {
   if (!req.user || !roles.includes(req.user.role)) {
     return res.status(403).json({ message: "Access denied" });
   }
-  next();
+  return next();
 };
 
 module.exports = { protect, requireRole };
