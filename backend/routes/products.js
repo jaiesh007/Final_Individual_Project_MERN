@@ -28,7 +28,8 @@ const parseStock = (value) => {
   const stock = Number(normalized);
   return Number.isSafeInteger(stock) ? stock : NaN;
 };
-const safeRegex = (value) => String(value).slice(0, 100).split("").map((character) => ".*+?^$(){}|[]\\\\".includes(character) ? "\\" + character : character).join("");
+const regexSpecials = ".*+?^$(){}|[]";
+const safeRegex = (value) => String(value).slice(0, 100).split("").map((character) => regexSpecials.includes(character) || character === String.fromCharCode(92) ? String.fromCharCode(92) + character : character).join("");
 const categoryIsAllowed = async (value) => {
   if (typeof value !== "string" || !value.trim()) return false;
   if (builtInCategories.some((name) => name.toLowerCase() === value.trim().toLowerCase())) return true;
