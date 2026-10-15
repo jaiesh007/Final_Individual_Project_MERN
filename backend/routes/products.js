@@ -1,12 +1,14 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const Product = require("../models/Product");
+const CategoryRequest = require("../models/CategoryRequest");
 const { protect, requireRole } = require("../middleware/auth");
 const upload = require("../middleware/upload");
 const uploadToCloudinary = require("../utils/cloudinary");
 
 const router = express.Router();
 const editableFields = ["name", "description", "category", "price", "stock", "material", "origin", "featured"];
+const builtInCategories = ["Pottery", "Textiles", "Bamboo", "Metal Craft", "Wood Craft", "Jewellery", "Home Decor", "Other"];
 const safeProductInput = (body) => {
   const data = {};
   for (const field of editableFields) if (Object.prototype.hasOwnProperty.call(body || {}, field)) data[field] = body[field];
@@ -26,7 +28,12 @@ const parseStock = (value) => {
   const stock = Number(normalized);
   return Number.isSafeInteger(stock) ? stock : NaN;
 };
-const safeRegex = (value) => String(value).slice(0, 100).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const safeRegex = (value) => String(value).slice(0, 100).replace(/[.*+?^${}()|[\]\\]/g, "\\const safeRegex = (value) => String(value).slice(0, 100).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");");
+const categoryIsAllowed = async (value) => {
+  if (typeof value !== "string" || !value.trim()) return false;
+  if (builtInCategories.some((name) => name.toLowerCase() === value.trim().toLowerCase())) return true;
+  return Boolean(await CategoryRequest.exists({ name: new RegExp("^" + safeRegex(value.trim()) + "$", "i"), status: "approved" }));
+};
 
 router.get("/", async (req, res) => {
   try {
@@ -111,6 +118,7 @@ router.post("/", protect, requireRole("artisan", "admin"), upload.single("image"
     input.stock = parseStock(input.stock);
     const missing = ["name", "description", "category"].filter((field) => !input[field]);
     if (missing.length) return res.status(400).json({ message: "Please fill in the required product fields: " + missing.join(", ") });
+    if (!(await categoryIsAllowed(input.category))) return res.status(400).json({ message: "This category is not approved yet. Submit a category request to the admin first." });
     if (!Number.isFinite(input.price) || input.price < 0) return res.status(400).json({ message: "Enter a valid non-negative price with up to 2 decimal places." });
     if (!Number.isSafeInteger(input.stock) || input.stock < 0) return res.status(400).json({ message: "Stock must be a whole number of zero or more." });
 
@@ -133,6 +141,9 @@ router.put("/:id", protect, requireRole("artisan", "admin"), upload.single("imag
     if (!product) return res.status(404).json({ message: "Product not found" });
     if (String(product.artisan) !== String(req.user._id) && req.user.role !== "admin") return res.status(403).json({ message: "You can update only your own product" });
     const input = safeProductInput(req.body);
+    if (Object.prototype.hasOwnProperty.call(input, "category") && !(await categoryIsAllowed(input.category))) {
+      return res.status(400).json({ message: "This category is not approved yet. Submit a category request to the admin first." });
+    }
     if (Object.prototype.hasOwnProperty.call(input, "price")) {
       input.price = parsePrice(input.price);
       if (!Number.isFinite(input.price) || input.price < 0) return res.status(400).json({ message: "Enter a valid non-negative price with up to 2 decimal places." });
