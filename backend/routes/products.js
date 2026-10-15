@@ -73,6 +73,23 @@ router.get("/", async (req, res) => {
   }
 });
 
+router.get("/mine/summary", protect, requireRole("artisan"), async (req, res) => {
+  try {
+    const [summary] = await Product.aggregate([
+      { $match: { artisan: new mongoose.Types.ObjectId(String(req.user._id)) } },
+      { $group: {
+        _id: null,
+        productCount: { $sum: 1 },
+        inventoryValue: { $sum: { $multiply: ["$price", "$stock"] } },
+        availableListings: { $sum: { $cond: [{ $gt: ["$stock", 0] }, 1, 0] } }
+      } }
+    ]);
+    res.json(summary || { productCount: 0, inventoryValue: 0, availableListings: 0 });
+  } catch (error) {
+    res.status(500).json({ message: "Unable to load inventory summary" });
+  }
+});
+
 router.get("/:id", async (req, res) => {
   try {
     if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ message: "Invalid product ID" });
