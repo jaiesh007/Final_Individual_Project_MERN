@@ -18,14 +18,14 @@ const Pager = ({ data, onPage }) => (
   </div>
 );
 
-const SalesChart = ({ data }) => {
-  const max = Math.max(1, ...data.map((item) => Number(item.revenue) || 0));
+const MetricChart = ({ data, metric, formatter, label }) => {
+  const max = Math.max(1, ...data.map((item) => Number(item[metric]) || 0));
   return (
-    <div className="admin-chart" role="img" aria-label="Revenue by month bar chart">
+    <div className="admin-chart" role="img" aria-label={label}>
       {data.map((item) => (
-        <div className="admin-chart-column" key={item.label} title={`${item.label}: ${money(item.revenue)}`}>
-          <strong>{money(item.revenue)}</strong>
-          <div className="admin-chart-track"><span style={{ height: `${Math.max(4, (item.revenue / max) * 100)}%` }} /></div>
+        <div className="admin-chart-column" key={item.label} title={`${item.label}: ${formatter(item[metric])}`}>
+          <strong>{formatter(item[metric])}</strong>
+          <div className="admin-chart-track"><span style={{ height: `${Math.max(4, (item[metric] / max) * 100)}%` }} /></div>
           <span>{item.label}</span>
         </div>
       ))}
@@ -141,7 +141,8 @@ const AdminDashboard = () => {
             <article><ShieldCheck /><span>Pending approvals</span><strong>{totals.pendingArtisans ?? "—"}</strong></article>
           </div>
           <div className="admin-overview-grid">
-            <section className="dashboard-panel admin-panel"><div className="panel-heading"><div className="panel-icon"><BarChart3 size={20} /></div><div><h2>Sales trend</h2><p>Completed and active orders, last six months</p></div></div>{overview ? <SalesChart data={overview.salesByMonth || []} /> : <p>Loading chart…</p>}</section>
+            <section className="dashboard-panel admin-panel"><div className="panel-heading"><div className="panel-icon"><BarChart3 size={20} /></div><div><h2>Sales trend</h2><p>Completed and active orders, last six months</p></div></div>{overview ? <MetricChart data={overview.salesByMonth || []} metric="revenue" formatter={money} label="Revenue by month bar chart" /> : <p>Loading chart…</p>}</section>
+            <section className="dashboard-panel admin-panel"><div className="panel-heading"><div className="panel-icon"><ClipboardList size={20} /></div><div><h2>Purchase volume</h2><p>Number of orders per month</p></div></div>{overview ? <MetricChart data={overview.salesByMonth || []} metric="orders" formatter={(value) => String(value || 0)} label="Orders per month bar chart" /> : <p>Loading chart…</p>}</section>
             <section className="dashboard-panel admin-panel"><div className="panel-heading"><div className="panel-icon"><Boxes size={20} /></div><div><h2>Product categories</h2><p>Current inventory by category</p></div></div><div className="admin-rank-list">{(overview?.categoryBreakdown || []).map((item) => <div key={item._id}><span>{item._id || "Uncategorized"}</span><strong>{item.products}</strong></div>)}{overview && !overview.categoryBreakdown?.length && <p>No products have been listed yet.</p>}</div></section>
             <section className="dashboard-panel admin-panel"><div className="panel-heading"><div className="panel-icon"><Store size={20} /></div><div><h2>Top sellers</h2><p>Ranked by recorded sales value</p></div></div><div className="admin-rank-list">{(overview?.topSellers || []).map((item) => <div key={item._id || item.name}><span>{item.name} <small>· {item.units} items</small></span><strong>{money(item.revenue)}</strong></div>)}{overview && !overview.topSellers?.length && <p>Seller rankings appear when orders are placed.</p>}</div></section>
             <section className="dashboard-panel admin-panel"><div className="panel-heading"><div className="panel-icon"><Package size={20} /></div><div><h2>Popular products</h2><p>By units ordered</p></div></div><div className="admin-rank-list">{(overview?.topProducts || []).map((item) => <div key={item._id}><span>{item._id || "Product"} <small>· {money(item.revenue)}</small></span><strong>{item.units} sold</strong></div>)}{overview && !overview.topProducts?.length && <p>Product rankings appear when orders are placed.</p>}</div></section>
