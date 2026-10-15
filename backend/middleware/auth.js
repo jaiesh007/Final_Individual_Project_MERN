@@ -9,11 +9,14 @@ const protect = async (req, res, next) => {
     }
 
     const token = header.slice(7).trim();
-    if (!token) return res.status(401).json({ message: "Not authorized" });
+    if (!token) return res.status(401).json({ message: "Not authorized" };
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.id).select("-password");
     if (!user) return res.status(401).json({ message: "Account no longer exists" });
+    if (user.role === "artisan" && user.artisanStatus !== "approved") {
+      return res.status(403).json({ message: "Your artisan account is not approved" });
+    }
 
     req.user = user;
     return next();
