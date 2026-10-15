@@ -13,6 +13,8 @@ const publicUser = (user) => ({
   name: user.name,
   email: user.email,
   role: user.role,
+  artisanStatus: user.artisanStatus,
+  artisanReviewNote: user.artisanReviewNote,
   location: user.location,
   craftType: user.craftType
 });
@@ -34,27 +36,31 @@ router.post("/register", async (req, res) => {
     if (exists) return res.status(409).json({ message: "Email already registered" });
 
     // Public registration can create customer or artisan accounts only.
-    const requestedRole = req.body.role;
-    const role = requestedRole === "artisan" ? "artisan" : "customer";
+    const role = req.body.role === "artisan" ? "artisan" : "customer";
     const user = await User.create({
       name: name.trim(),
       email: normalizedEmail,
       password,
       role,
+      artisanStatus: role === "artisan" ? "pending" : "not-applicable",
       phone,
       location,
       craftType: role === "artisan" ? craftType : undefined,
       story: role === "artisan" ? story : undefined
     });
 
+    if (role === "artisan") {
+      return res.status(201).json({
+        user: publicUser(user),
+        approvalRequired: true,
+        message: "Your artisan application was submitted. You can log in after an administrator approves it."
+      });
+    }
+
     return res.status(201).json({ token: createToken(user._id), user: publicUser(user) });
   } catch (error) {
-    if (error.code === 11000) {
-      return res.status(409).json({ message: "Email already registered" });
-    }
-    if (error.name === "ValidationError") {
-      return res.status(400).json({ message: "Please check the registration details" });
-    }
+    if (error.code === 11000) return res.status(409).json({ message: "Email already registered" });
+    if (error.name === "ValidationError") return res.status(400).json({ message: "Please check the registration details" });
     console.error("Registration failed:", error.message);
     return res.status(500).json({ message: "Unable to register at this time" });
   }
@@ -63,14 +69,20 @@ router.post("/register", async (req, res) => {
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body || {};
-    if (typeof email !== "string" || typeof password !== "string" ||
-        !email.trim() || !password) {
+    if (typeof email !== "string" || typeof password !== "string" || !email.trim() || !password) {
       return res.status(400).json({ message: "Email and password are required" });
     }
 
     const user = await User.findOne({ email: email.trim().toLowerCase() });
     if (!user || !(await user.matchPassword(password))) {
       return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    if (user.role === "artisan" && user.artisanStatus !== "approved") {
+      const statusMessage = user.artisanStatus === "rejected"
+        ? "Your artisan application was not approved. Contact support if you need help."
+        : "Your artisan application is awaiting admin approval. You can log in after it is approved.";
+      return res.status(403).json({ message: statusMessage, artisanStatus: user.artisanStatus });
     }
 
     return res.json({ token: createToken(user._id), user: publicUser(user) });
@@ -81,7 +93,7 @@ router.post("/login", async (req, res) => {
 });
 
 router.get("/me", protect, (req, res) => {
-  res.json(req.user);
+  res.json(publicUser(req.user));
 });
 
 module.exports = router;
