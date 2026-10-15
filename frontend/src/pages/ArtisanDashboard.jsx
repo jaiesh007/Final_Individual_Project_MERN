@@ -145,13 +145,13 @@ const ArtisanDashboard = () => {
     }
   };
 
-  if (!isLoggedIn) {
+  if (!isLoggedIn || !["artisan", "admin"].includes(user?.role)) {
     return (
       <section className="dashboard-page">
         <div className="empty-state">
-          <h2>Login required</h2>
-          <p>Log in with an artisan account to create and manage your handmade products.</p>
-          <Link to="/login" className="primary-button">Login to continue</Link>
+          <h2>{isLoggedIn ? "Artisan access required" : "Login required"}</h2>
+          <p>{isLoggedIn ? "This studio is for approved artisans. Apply as an artisan to publish products and request categories." : "Log in with an approved artisan account to create and manage handmade products."}</p>
+          <Link to={isLoggedIn ? "/register" : "/login"} className="primary-button">{isLoggedIn ? "Become an artisan" : "Login to continue"}</Link>
         </div>
       </section>
     );
