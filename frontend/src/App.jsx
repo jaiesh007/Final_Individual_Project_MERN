@@ -8,6 +8,7 @@ import Cart from "./pages/Cart.jsx";
 import ArtisanDashboard from "./pages/ArtisanDashboard.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
+import Wishlist from "./pages/Wishlist.jsx";
 
 const App = () => {
   return (
@@ -19,6 +20,7 @@ const App = () => {
           <Route path="/shop" element={<Shop />} />
           <Route path="/products/:id" element={<ProductDetails />} />
           <Route path="/cart" element={<Cart />} />
+          <Route path="/wishlist" element={<Wishlist />} />
           <Route path="/dashboard" element={<ArtisanDashboard />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
