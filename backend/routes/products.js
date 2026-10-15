@@ -1,58 +1,81 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const Product = require("../models/Product");
 const { protect, requireRole } = require("../middleware/auth");
 const upload = require("../middleware/upload");
 
 const router = express.Router();
+const editableFields = ["name", "description", "category", "price", "stock", "material", "origin", "featured", "image"];
+
+const safeProductInput = (body) => {
+  const data = {};
+  for (const field of editableFields) {
+    if (Object.prototype.hasOwnProperty.call(body || {}, field)) data[field] = body[field];
+  }
+  return data;
+};
 
 router.get("/", async (req, res) => {
   try {
     const { search, category, featured, artisan } = req.query;
     const filter = {};
 
-    if (category && category !== "All") filter.category = category;
-    if (featured) filter.featured = featured === "true";
-    if (artisan) filter.artisan = artisan;
+    if (category && category !== "All") filter.category = String(category).slice(0, 100);
+    if (featured === "true" || featured === "false") filter.featured = featured === "true";
+    if (artisan) {
+      if (!mongoose.isValidObjectId(artisan)) return res.status(400).json({ message: "Invalid artisan ID" });
+      filter.artisan = artisan;
+    }
     if (search) {
+      const term = String(search).slice(0, 100).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       filter.$or = [
-        { name: { $regex: search, $options: "i" } },
-        { description: { $regex: search, $options: "i" } },
-        { material: { $regex: search, $options: "i" } }
+        { name: { $regex: term, $options: "i" } },
+        { description: { $regex: term, $options: "i" } },
+        { material: { $regex: term, $options: "i" } }
       ];
     }
 
-    const products = await Product.find(filter).populate("artisan", "name location craftType story");
+    const products = await Product.find(filter)
+      .populate("artisan", "name location craftType story")
+      .sort({ createdAt: -1 })
+      .limit(200);
     res.json(products);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Fetching products failed:", error.message);
+    res.status(500).json({ message: "Unable to fetch products" });
   }
 });
 
 router.get("/:id", async (req, res) => {
   try {
+    if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ message: "Invalid product ID" });
     const product = await Product.findById(req.params.id).populate("artisan", "name location craftType story");
     if (!product) return res.status(404).json({ message: "Product not found" });
     res.json(product);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Fetching product failed:", error.message);
+    res.status(500).json({ message: "Unable to fetch product" });
   }
 });
 
 router.post("/", protect, requireRole("artisan", "admin"), upload.single("image"), async (req, res) => {
   try {
-    const product = await Product.create({
-      ...req.body,
-      image: req.file ? `/uploads/${req.file.filename}` : req.body.image,
-      artisan: req.user._id
-    });
+    const input = safeProductInput(req.body);
+    if (req.file) input.image = "/uploads/" + req.file.filename;
+    const product = await Product.create({ ...input, artisan: req.user._id });
     res.status(201).json(product);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    if (error.name === "ValidationError" || error.name === "CastError") {
+      return res.status(400).json({ message: "Please provide valid product details" });
+    }
+    console.error("Creating product failed:", error.message);
+    res.status(500).json({ message: "Unable to create product" });
   }
 });
 
 router.put("/:id", protect, requireRole("artisan", "admin"), upload.single("image"), async (req, res) => {
   try {
+    if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ message: "Invalid product ID" });
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ message: "Product not found" });
 
@@ -60,17 +83,23 @@ router.put("/:id", protect, requireRole("artisan", "admin"), upload.single("imag
       return res.status(403).json({ message: "You can update only your own product" });
     }
 
-    Object.assign(product, req.body);
-    if (req.file) product.image = `/uploads/${req.file.filename}`;
+    const input = safeProductInput(req.body);
+    if (req.file) input.image = "/uploads/" + req.file.filename;
+    for (const [key, value] of Object.entries(input)) product[key] = value;
     await product.save();
     res.json(product);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    if (error.name === "ValidationError" || error.name === "CastError") {
+      return res.status(400).json({ message: "Please provide valid product details" });
+    }
+    console.error("Updating product failed:", error.message);
+    res.status(500).json({ message: "Unable to update product" });
   }
 });
 
 router.delete("/:id", protect, requireRole("artisan", "admin"), async (req, res) => {
   try {
+    if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ message: "Invalid product ID" });
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ message: "Product not found" });
 
@@ -81,7 +110,8 @@ router.delete("/:id", protect, requireRole("artisan", "admin"), async (req, res)
     await product.deleteOne();
     res.json({ message: "Product deleted" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Deleting product failed:", error.message);
+    res.status(500).json({ message: "Unable to delete product" });
   }
 });
 
