@@ -42,31 +42,54 @@ const products = [
 ];
 
 const run = async () => {
+  if (process.env.ALLOW_DEMO_SEED !== "true") {
+    throw new Error("Demo seeding is disabled. Set ALLOW_DEMO_SEED=true only in a disposable development database.");
+  }
+
   await connectDB();
-  await User.deleteMany();
-  await Product.deleteMany();
+  let artisan = await User.findOne({ email: "artisan@example.com" });
+  if (!artisan) {
+    artisan = await User.create({
+      name: "Aarav Handmade Studio",
+      email: "artisan@example.com",
+      password: process.env.DEMO_ARTISAN_PASSWORD,
+      role: "artisan",
+      location: "Jaipur",
+      craftType: "Pottery and textiles",
+      story: "A small family studio preserving traditional handmade techniques."
+    });
+  }
 
-  const artisan = await User.create({
-    name: "Aarav Handmade Studio",
-    email: "artisan@example.com",
-    password: "password123",
-    role: "artisan",
-    location: "Jaipur",
-    craftType: "Pottery and textiles",
-    story: "A small family studio preserving traditional handmade techniques."
-  });
+  if (!process.env.DEMO_ARTISAN_PASSWORD && !artisan) {
+    throw new Error("Set DEMO_ARTISAN_PASSWORD before seeding a demo artisan.");
+  }
 
-  await User.create({
-    name: "Demo Customer",
-    email: "customer@example.com",
-    password: "password123",
-    role: "customer",
-    location: "Delhi"
-  });
+  const customerExists = await User.findOne({ email: "customer@example.com" });
+  if (!customerExists) {
+    if (!process.env.DEMO_CUSTOMER_PASSWORD) {
+      throw new Error("Set DEMO_CUSTOMER_PASSWORD before seeding a demo customer.");
+    }
+    await User.create({
+      name: "Demo Customer",
+      email: "customer@example.com",
+      password: process.env.DEMO_CUSTOMER_PASSWORD,
+      role: "customer",
+      location: "Delhi"
+    });
+  }
 
-  await Product.insertMany(products.map((product) => ({ ...product, artisan: artisan._id })));
-  console.log("Seed data inserted");
-  process.exit();
+  const existingProducts = await Product.countDocuments();
+  if (existingProducts === 0) {
+    await Product.insertMany(products.map((product) => ({ ...product, artisan: artisan._id })));
+    console.log("Demo products inserted.");
+  } else {
+    console.log("Products already exist; preserving existing product data.");
+  }
+  console.log("Demo seeding complete.");
+  process.exit(0);
 };
 
-run();
+run().catch((error) => {
+  console.error("Demo seeding failed:", error.message);
+  process.exit(1);
+});
