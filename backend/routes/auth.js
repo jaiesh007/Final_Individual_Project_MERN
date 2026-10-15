@@ -13,7 +13,7 @@ const publicUser = (user) => ({
   name: user.name,
   email: user.email,
   role: user.role,
-  artisanStatus: user.artisanStatus,
+  artisanStatus: user.artisanStatus || (user.role === "artisan" ? "approved" : "not-applicable"),
   artisanReviewNote: user.artisanReviewNote,
   location: user.location,
   craftType: user.craftType
@@ -78,7 +78,7 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    if (user.role === "artisan" && user.artisanStatus !== "approved") {
+    if (user.role === "artisan" && user.artisanStatus && user.artisanStatus !== "approved") {
       const statusMessage = user.artisanStatus === "rejected"
         ? "Your artisan application was not approved. Contact support if you need help."
         : "Your artisan application is awaiting admin approval. You can log in after it is approved.";
