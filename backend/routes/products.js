@@ -16,6 +16,23 @@ const safeProductInput = (body) => {
   return data;
 };
 
+const parsePrice = (value) => {
+  if (typeof value !== "string" && typeof value !== "number") return NaN;
+  const normalized = String(value).trim().replace(/[₹,\s]/g, "");
+  if (!normalized || !/^\d+(?:\.\d{1,2})?$/.test(normalized)) return NaN;
+  const price = Number(normalized);
+  if (!Number.isFinite(price) || price > Number.MAX_SAFE_INTEGER) return NaN;
+  return price;
+};
+
+const parseStock = (value) => {
+  if (value === "" || value == null) return 1;
+  const normalized = String(value).trim();
+  if (!/^\d+$/.test(normalized)) return NaN;
+  const stock = Number(normalized);
+  return Number.isSafeInteger(stock) ? stock : NaN;
+};
+
 router.get("/", async (req, res) => {
   try {
     const { search, category, featured, artisan } = req.query;
@@ -67,18 +84,22 @@ router.post("/", protect, requireRole("artisan", "admin"), upload.single("image"
     input.name = typeof input.name === "string" ? input.name.trim() : input.name;
     input.description = typeof input.description === "string" ? input.description.trim() : input.description;
     input.category = typeof input.category === "string" ? input.category.trim() : input.category;
-    input.price = input.price === "" || input.price == null ? NaN : Number(input.price);
-    input.stock = input.stock === "" || input.stock == null ? 1 : Number(input.stock);
+    input.material = typeof input.material === "string" ? input.material.trim() : input.material;
+    input.origin = typeof input.origin === "string" ? input.origin.trim() : input.origin;
+    input.price = parsePrice(input.price);
+    input.stock = parseStock(input.stock);
 
     const missing = ["name", "description", "category"].filter((field) => !input[field]);
     if (missing.length) {
       return res.status(400).json({ message: "Please fill in the required product fields: " + missing.join(", ") });
     }
     if (!Number.isFinite(input.price) || input.price < 0) {
-      return res.status(400).json({ message: "Price must be a valid number greater than or equal to zero" });
+      return res.status(400).json({
+        message: "Enter a valid price using digits, optional commas, and up to 2 decimal places. The maximum supported price is ₹9,007,199,254,740,991."
+      });
     }
-    if (!Number.isInteger(input.stock) || input.stock < 0) {
-      return res.status(400).json({ message: "Stock must be a whole number greater than or equal to zero" });
+    if (!Number.isSafeInteger(input.stock) || input.stock < 0) {
+      return res.status(400).json({ message: "Stock must be a whole number of zero or more." });
     }
 
     input.image = await uploadToCloudinary(req.file);
@@ -97,8 +118,11 @@ router.post("/", protect, requireRole("artisan", "admin"), upload.single("image"
     if (error.code === "CLOUDINARY_NOT_CONFIGURED") {
       return res.status(503).json({ message: "Image uploads are not configured yet. Add the Cloudinary environment variables to Render." });
     }
+    if (error.code === "CLOUDINARY_UPLOAD_FAILED") {
+      return res.status(502).json({ message: "Cloudinary could not upload this image. Check the image and Cloudinary settings, then try again." });
+    }
     console.error("Creating product failed:", error.message);
-    res.status(502).json({ message: "Image upload or product creation failed. Check Cloudinary settings and try again." });
+    res.status(502).json({ message: "Product creation failed. Check the backend logs and try again." });
   }
 });
 
@@ -113,6 +137,18 @@ router.put("/:id", protect, requireRole("artisan", "admin"), upload.single("imag
     }
 
     const input = safeProductInput(req.body);
+    if (Object.prototype.hasOwnProperty.call(input, "price")) {
+      input.price = parsePrice(input.price);
+      if (!Number.isFinite(input.price) || input.price < 0) {
+        return res.status(400).json({ message: "Enter a valid non-negative price with up to 2 decimal places." });
+      }
+    }
+    if (Object.prototype.hasOwnProperty.call(input, "stock")) {
+      input.stock = parseStock(input.stock);
+      if (!Number.isSafeInteger(input.stock) || input.stock < 0) {
+        return res.status(400).json({ message: "Stock must be a whole number of zero or more." });
+      }
+    }
     if (req.file) input.image = await uploadToCloudinary(req.file);
     for (const [key, value] of Object.entries(input)) product[key] = value;
     await product.save();
