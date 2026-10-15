@@ -37,8 +37,10 @@ const normalizePrice = (value) => String(value).trim().replace(/[₹,\s]/g, "");
 
 const ArtisanDashboard = () => {
   const { user, isLoggedIn } = useAuth();
-  const params = useMemo(() => (user?.id ? { artisan: user.id } : {}), [user]);
-  const { products, setProducts, loading, error } = useProducts(params);
+  const [inventoryPage, setInventoryPage] = useState(1);
+  const [summary, setSummary] = useState(null);
+  const params = useMemo(() => (user?.id ? { artisan: user.id, page: inventoryPage, limit: 8 } : {}), [user?.id, inventoryPage]);
+  const { products, setProducts, loading, error, pagination } = useProducts(params);
   const [message, setMessage] = useState({ type: "", text: "" });
   const [form, setForm] = useState(emptyForm);
   const [selectedImage, setSelectedImage] = useState(null);
@@ -51,6 +53,12 @@ const ArtisanDashboard = () => {
     api.get("/categories").then(({ data }) => { if (alive && Array.isArray(data)) setCategories(data); }).catch(() => {});
     return () => { alive = false; };
   }, []);
+
+  useEffect(() => {
+    if (user?.role !== "artisan") return;
+    api.get("/products/mine/summary").then(({ data }) => setSummary(data)).catch(() => {});
+  }, [user?.id, user?.role]);
+
   const formRef = useRef(null);
 
   const update = (event) => {
@@ -124,7 +132,9 @@ const ArtisanDashboard = () => {
       setSaving(true);
       setMessage({ type: "progress", text: "Uploading your image and saving product…" });
       const { data } = await api.post("/products", payload);
-      setProducts((current) => [data, ...current.filter((item) => item._id !== data._id)]);
+      setProducts((current) => [data, ...current.filter((item) => item._id !== data._id)].slice(0, 8));
+      setInventoryPage(1);
+      api.get("/products/mine/summary").then(({ data: nextSummary }) => setSummary(nextSummary)).catch(() => {});
       setForm(emptyForm);
       setSelectedImage(null);
       if (imagePreview) URL.revokeObjectURL(imagePreview);
@@ -145,13 +155,13 @@ const ArtisanDashboard = () => {
     }
   };
 
-  if (!isLoggedIn || !["artisan", "admin"].includes(user?.role)) {
+  if (!isLoggedIn || user?.role !== "artisan") {
     return (
       <section className="dashboard-page">
         <div className="empty-state">
           <h2>{isLoggedIn ? "Artisan access required" : "Login required"}</h2>
-          <p>{isLoggedIn ? "This studio is for approved artisans. Apply as an artisan to publish products and request categories." : "Log in with an approved artisan account to create and manage handmade products."}</p>
-          <Link to={isLoggedIn ? "/register" : "/login"} className="primary-button">{isLoggedIn ? "Become an artisan" : "Login to continue"}</Link>
+          <p>{isLoggedIn ? "This studio is for approved artisan accounts. Use the admin dashboard for marketplace management." : "Log in with an approved artisan account to create and manage handmade products."}</p>
+          <Link to={isLoggedIn && user?.role === "admin" ? "/admin" : isLoggedIn ? "/register" : "/login"} className="primary-button">{isLoggedIn && user?.role === "admin" ? "Open admin dashboard" : isLoggedIn ? "Become an artisan" : "Login to continue"}</Link>
         </div>
       </section>
     );
@@ -188,9 +198,9 @@ const ArtisanDashboard = () => {
       {error && <p className="notice">{error}</p>}
 
       <div className="dashboard-stats artisan-stat-cards">
-        <div><ShoppingBag /><span>Products listed</span><strong>{products.length}</strong></div>
-        <div><IndianRupee /><span>Inventory value</span><strong>₹{formatMoney(inventoryValue)}</strong></div>
-        <div><BarChart3 /><span>Available listings</span><strong>{products.filter((item) => Number(item.stock) > 0).length}</strong></div>
+        <div><ShoppingBag /><span>Products listed</span><strong>{summary?.productCount ?? pagination?.total ?? products.length}</strong></div>
+        <div><IndianRupee /><span>Total inventory value</span><strong>₹{formatMoney(summary?.inventoryValue ?? inventoryValue)}</strong></div>
+        <div><BarChart3 /><span>Available listings</span><strong>{summary?.availableListings ?? products.filter((item) => Number(item.stock) > 0).length}</strong></div>
       </div>
 
       <div className="dashboard-grid artisan-workspace">
@@ -221,6 +231,7 @@ const ArtisanDashboard = () => {
                   </span>
                 </article>
               ))}
+              {pagination && pagination.total > pagination.limit && <div className="inventory-pager"><span>Page {pagination.page} of {pagination.totalPages} · {pagination.total} products</span><div><button type="button" disabled={inventoryPage <= 1} onClick={() => setInventoryPage((current) => Math.max(1, current - 1))}>Previous</button><button type="button" disabled={inventoryPage >= pagination.totalPages} onClick={() => setInventoryPage((current) => Math.min(pagination.totalPages, current + 1))}>Next</button></div></div>}
             </div>
           ) : (
             <div className="inventory-empty">
