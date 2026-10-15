@@ -1,10 +1,12 @@
 import { Link, NavLink } from "react-router-dom";
-import { HandHeart, LogOut, ShoppingBag, Store } from "lucide-react";
+import { Heart, HandHeart, LogOut, ShoppingBag, Store } from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useCart } from "../context/CartContext.jsx";
+import { useWishlist } from "../context/WishlistContext.jsx";
 
 const Navbar = () => {
   const { count } = useCart();
+  const { count: wishlistCount } = useWishlist();
   const { user, isLoggedIn, logout } = useAuth();
 
   return (
@@ -27,6 +29,10 @@ const Navbar = () => {
         ) : (
           <Link to="/login" className="ghost-button">Login</Link>
         )}
+        <Link to="/wishlist" className="wishlist-nav-button" aria-label={`Wishlist, ${wishlistCount} saved items`}>
+          <Heart size={18} />
+          <span>{wishlistCount}</span>
+        </Link>
         <Link to="/cart" className="cart-button" aria-label="Cart">
           <ShoppingBag size={18} />
           <span>{count}</span>
