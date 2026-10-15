@@ -62,13 +62,37 @@ router.get("/:id", async (req, res) => {
 router.post("/", protect, requireRole("artisan", "admin"), upload.single("image"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: "Choose an image file to upload" });
+
     const input = safeProductInput(req.body);
+    input.name = typeof input.name === "string" ? input.name.trim() : input.name;
+    input.description = typeof input.description === "string" ? input.description.trim() : input.description;
+    input.category = typeof input.category === "string" ? input.category.trim() : input.category;
+    input.price = input.price === "" || input.price == null ? NaN : Number(input.price);
+    input.stock = input.stock === "" || input.stock == null ? 1 : Number(input.stock);
+
+    const missing = ["name", "description", "category"].filter((field) => !input[field]);
+    if (missing.length) {
+      return res.status(400).json({ message: "Please fill in the required product fields: " + missing.join(", ") });
+    }
+    if (!Number.isFinite(input.price) || input.price < 0) {
+      return res.status(400).json({ message: "Price must be a valid number greater than or equal to zero" });
+    }
+    if (!Number.isInteger(input.stock) || input.stock < 0) {
+      return res.status(400).json({ message: "Stock must be a whole number greater than or equal to zero" });
+    }
+
     input.image = await uploadToCloudinary(req.file);
     const product = await Product.create({ ...input, artisan: req.user._id });
     res.status(201).json(product);
   } catch (error) {
-    if (error.name === "ValidationError" || error.name === "CastError") {
-      return res.status(400).json({ message: "Please provide valid product details" });
+    if (error.name === "ValidationError") {
+      const details = Object.values(error.errors || {}).map((item) => `${item.path}: ${item.message}`);
+      console.error("Product validation failed:", details);
+      return res.status(400).json({ message: details.length ? "Invalid product details: " + details.join("; ") : "Please provide valid product details" });
+    }
+    if (error.name === "CastError") {
+      console.error("Product cast failed:", error.path, error.value);
+      return res.status(400).json({ message: `Invalid value for product field: ${error.path}` });
     }
     if (error.code === "CLOUDINARY_NOT_CONFIGURED") {
       return res.status(503).json({ message: "Image uploads are not configured yet. Add the Cloudinary environment variables to Render." });
