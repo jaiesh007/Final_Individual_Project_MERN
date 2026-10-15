@@ -12,7 +12,7 @@ import {
   X
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import api from "../api/axios.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useProducts } from "../hooks/useProducts.js";
@@ -43,6 +43,7 @@ const ArtisanDashboard = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
   const [saving, setSaving] = useState(false);
+  const formRef = useRef(null);
 
   const update = (event) => {
     const { name, value } = event.target;
@@ -120,7 +121,7 @@ const ArtisanDashboard = () => {
       setSelectedImage(null);
       if (imagePreview) URL.revokeObjectURL(imagePreview);
       setImagePreview("");
-      event.currentTarget.reset();
+      formRef.current?.reset();
       setMessage({ type: "success", text: "Product published successfully. Your image is hosted on Cloudinary." });
     } catch (requestError) {
       const status = requestError.response?.status;
@@ -233,7 +234,7 @@ const ArtisanDashboard = () => {
             </div>
           </div>
 
-          <form className="stacked-form add-product-form" onSubmit={saveProduct}>
+          <form ref={formRef} className="stacked-form add-product-form" onSubmit={saveProduct}>
             <div className="form-field">
               <label htmlFor="product-name">Product name <span>*</span></label>
               <input id="product-name" name="name" value={form.name} onChange={update} placeholder="e.g. Hand-painted blue pottery vase" maxLength="120" required />
