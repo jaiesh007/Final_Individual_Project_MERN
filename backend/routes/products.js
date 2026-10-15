@@ -28,11 +28,11 @@ const parseStock = (value) => {
   const stock = Number(normalized);
   return Number.isSafeInteger(stock) ? stock : NaN;
 };
-const safeRegex = (value) => String(value).slice(0, 100).replace(/[.*+?^${}()|[\]\\]/g, "\\const safeRegex = (value) => String(value).slice(0, 100).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");");
+const safeRegex = (value) => String(value).slice(0, 100).split("").map((character) => ".*+?^$(){}|[]\\\\".includes(character) ? "\\" + character : character).join("");
 const categoryIsAllowed = async (value) => {
   if (typeof value !== "string" || !value.trim()) return false;
   if (builtInCategories.some((name) => name.toLowerCase() === value.trim().toLowerCase())) return true;
-  return Boolean(await CategoryRequest.exists({ name: new RegExp("^" + safeRegex(value.trim()) + "$", "i"), status: "approved" }));
+  return Boolean(await CategoryRequest.exists({ name: value.trim(), status: "approved" }));
 };
 
 router.get("/", async (req, res) => {
