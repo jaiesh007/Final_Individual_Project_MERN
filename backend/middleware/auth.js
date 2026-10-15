@@ -4,17 +4,16 @@ const User = require("../models/User");
 const protect = async (req, res, next) => {
   try {
     const header = req.headers.authorization;
-    if (!header || !header.startsWith("Bearer ")) {
-      return res.status(401).json({ message: "Not authorized" });
-    }
-
+    if (!header || !header.startsWith("Bearer ")) return res.status(401).json({ message: "Not authorized" });
     const token = header.slice(7).trim();
     if (!token) return res.status(401).json({ message: "Not authorized" });
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.id).select("-password");
     if (!user) return res.status(401).json({ message: "Account no longer exists" });
-
+    if (user.role === "artisan" && user.artisanStatus && user.artisanStatus !== "approved") {
+      return res.status(403).json({ message: "Your artisan account is not approved" });
+    }
     req.user = user;
     return next();
   } catch (error) {
@@ -23,9 +22,7 @@ const protect = async (req, res, next) => {
 };
 
 const requireRole = (...roles) => (req, res, next) => {
-  if (!req.user || !roles.includes(req.user.role)) {
-    return res.status(403).json({ message: "Access denied" });
-  }
+  if (!req.user || !roles.includes(req.user.role)) return res.status(403).json({ message: "Access denied" });
   return next();
 };
 

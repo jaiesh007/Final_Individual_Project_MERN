@@ -9,7 +9,8 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
-    "seed": "node seed.js"
+    "seed": "node seed.js",
+    "create-admin": "node createAdmin.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

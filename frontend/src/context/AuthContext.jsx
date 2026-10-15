@@ -2,13 +2,9 @@ import { createContext, useContext, useMemo, useState } from "react";
 import api from "../api/axios.js";
 
 const AuthContext = createContext(null);
-
 const storedUser = () => {
-  try {
-    return JSON.parse(localStorage.getItem("artisanUser"));
-  } catch {
-    return null;
-  }
+  try { return JSON.parse(localStorage.getItem("artisanUser")); }
+  catch { return null; }
 };
 
 export const AuthProvider = ({ children }) => {
@@ -28,8 +24,8 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (form) => {
     const { data } = await api.post("/auth/register", form);
-    saveSession(data);
-    return data.user;
+    if (data.token) saveSession(data);
+    return { ...data.user, approvalRequired: Boolean(data.approvalRequired), message: data.message };
   };
 
   const logout = () => {
@@ -38,16 +34,14 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
-  const value = useMemo(() => {
-    return {
-      user,
-      token: localStorage.getItem("artisanToken"),
-      isLoggedIn: Boolean(user),
-      login,
-      register,
-      logout
-    };
-  }, [user]);
+  const value = useMemo(() => ({
+    user,
+    token: localStorage.getItem("artisanToken"),
+    isLoggedIn: Boolean(user),
+    login,
+    register,
+    logout
+  }), [user]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
