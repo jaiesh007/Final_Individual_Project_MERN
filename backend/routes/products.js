@@ -3,9 +3,10 @@ const mongoose = require("mongoose");
 const Product = require("../models/Product");
 const { protect, requireRole } = require("../middleware/auth");
 const upload = require("../middleware/upload");
+const uploadToCloudinary = require("../utils/cloudinary");
 
 const router = express.Router();
-const editableFields = ["name", "description", "category", "price", "stock", "material", "origin", "featured", "image"];
+const editableFields = ["name", "description", "category", "price", "stock", "material", "origin", "featured"];
 
 const safeProductInput = (body) => {
   const data = {};
@@ -60,16 +61,20 @@ router.get("/:id", async (req, res) => {
 
 router.post("/", protect, requireRole("artisan", "admin"), upload.single("image"), async (req, res) => {
   try {
+    if (!req.file) return res.status(400).json({ message: "Choose an image file to upload" });
     const input = safeProductInput(req.body);
-    if (req.file) input.image = "/uploads/" + req.file.filename;
+    input.image = await uploadToCloudinary(req.file);
     const product = await Product.create({ ...input, artisan: req.user._id });
     res.status(201).json(product);
   } catch (error) {
     if (error.name === "ValidationError" || error.name === "CastError") {
       return res.status(400).json({ message: "Please provide valid product details" });
     }
+    if (error.code === "CLOUDINARY_NOT_CONFIGURED") {
+      return res.status(503).json({ message: "Image uploads are not configured yet. Add the Cloudinary environment variables to Render." });
+    }
     console.error("Creating product failed:", error.message);
-    res.status(500).json({ message: "Unable to create product" });
+    res.status(502).json({ message: "Image upload or product creation failed. Check Cloudinary settings and try again." });
   }
 });
 
@@ -84,7 +89,7 @@ router.put("/:id", protect, requireRole("artisan", "admin"), upload.single("imag
     }
 
     const input = safeProductInput(req.body);
-    if (req.file) input.image = "/uploads/" + req.file.filename;
+    if (req.file) input.image = await uploadToCloudinary(req.file);
     for (const [key, value] of Object.entries(input)) product[key] = value;
     await product.save();
     res.json(product);
@@ -92,8 +97,11 @@ router.put("/:id", protect, requireRole("artisan", "admin"), upload.single("imag
     if (error.name === "ValidationError" || error.name === "CastError") {
       return res.status(400).json({ message: "Please provide valid product details" });
     }
+    if (error.code === "CLOUDINARY_NOT_CONFIGURED") {
+      return res.status(503).json({ message: "Image uploads are not configured yet. Add the Cloudinary environment variables to Render." });
+    }
     console.error("Updating product failed:", error.message);
-    res.status(500).json({ message: "Unable to update product" });
+    res.status(502).json({ message: "Image upload or product update failed. Check Cloudinary settings and try again." });
   }
 });
 
