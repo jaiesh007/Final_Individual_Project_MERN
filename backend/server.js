@@ -68,7 +68,7 @@ app.use((error, req, res, next) => {
   if (error && error.name === "MulterError") {
     return res.status(400).json({ message: error.code === "LIMIT_FILE_SIZE" ? "Image must be 5 MB or smaller" : "Invalid upload" });
   }
-  if (error && error.message === "Only image files are allowed") {
+  if (error && /^Only (image files|JPG, PNG, WEBP, and GIF images)/.test(error.message || "")) {
     return res.status(400).json({ message: error.message });
   }
   if (error && error.message === "Origin not allowed by CORS") {
