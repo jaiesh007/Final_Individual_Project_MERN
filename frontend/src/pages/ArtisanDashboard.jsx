@@ -50,9 +50,11 @@ const ArtisanDashboard = () => {
     }
 
     const payload = new FormData();
-    Object.entries(form).forEach(([key, value]) => payload.append(key, value));
-    payload.append("price", String(Number(form.price)));
-    payload.append("stock", String(Number(form.stock || 1)));
+    Object.entries(form).forEach(([key, value]) => {
+      if (key === "price") value = String(Number(value));
+      if (key === "stock") value = String(Number(value || 1));
+      payload.append(key, value);
+    });
     payload.append("image", selectedImage);
 
     try {
