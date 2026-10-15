@@ -49,6 +49,9 @@ const run = async () => {
   await connectDB();
   let artisan = await User.findOne({ email: "artisan@example.com" });
   if (!artisan) {
+    if (!process.env.DEMO_ARTISAN_PASSWORD) {
+      throw new Error("Set DEMO_ARTISAN_PASSWORD before seeding a demo artisan.");
+    }
     artisan = await User.create({
       name: "Aarav Handmade Studio",
       email: "artisan@example.com",
@@ -60,9 +63,6 @@ const run = async () => {
     });
   }
 
-  if (!process.env.DEMO_ARTISAN_PASSWORD && !artisan) {
-    throw new Error("Set DEMO_ARTISAN_PASSWORD before seeding a demo artisan.");
-  }
 
   const customerExists = await User.findOne({ email: "customer@example.com" });
   if (!customerExists) {
