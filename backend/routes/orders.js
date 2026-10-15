@@ -155,8 +155,8 @@ router.patch("/:id/status", protect, requireRole("admin", "artisan"), async (req
         _id: { $in: productIds },
         artisan: req.user._id
       }).select("_id");
-      if (ownedProducts.length === 0) {
-        return res.status(403).json({ message: "You cannot update an order without your products" });
+      if (ownedProducts.length !== new Set(productIds.map((id) => String(id))).size) {
+        return res.status(403).json({ message: "You can update only orders containing exclusively your products" });
       }
       if (status === "Cancelled") {
         return res.status(403).json({ message: "Only administrators can cancel orders" });
