@@ -126,7 +126,7 @@ const Cart = () => {
           <aside className="order-summary"><h2>Order summary</h2><div><span>Subtotal</span><strong>₹{total.toLocaleString("en-IN")}</strong></div><div><span>Delivery</span><strong>₹{DELIVERY_FEE}</strong></div><div className="grand-total"><span>Total</span><strong>₹{(total + DELIVERY_FEE).toLocaleString("en-IN")}</strong></div>
             <form className="checkout-form" onSubmit={placeOrder}>
               <div className="delivery-location-heading"><h3>Delivery address</h3><button type="button" className="secondary-button location-button" onClick={useCurrentLocation} disabled={locationBusy}><MapPin size={16}/>{locationBusy ? "Finding location…" : "Use my current location"}</button></div>
-              <p className="location-privacy-note">Your browser will ask permission. Your location is used to fill this form only; check the details before ordering.</p>
+              <p className="location-privacy-note">Your browser will ask permission. Coordinates are sent to OpenStreetMap to look up an address; review the result before ordering.</p>
               {locationMessage && <p className="location-feedback" role="status">{locationBusy && <LoaderCircle size={15} />}{locationMessage}</p>}
               <label>Full name<input name="fullName" value={address.fullName} onChange={updateAddress} autoComplete="name" maxLength={100} required/></label>
               <label>Phone number<input name="phone" value={address.phone} onChange={updateAddress} type="tel" autoComplete="tel" pattern="[0-9+() -]{8,20}" maxLength={20} required/></label>
