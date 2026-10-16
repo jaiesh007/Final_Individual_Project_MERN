@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const Product = require("../models/Product");
 const ProductComment = require("../models/ProductComment");
 const Conversation = require("../models/Conversation");
+const Notification = require("../models/Notification");
 const { protect, requireRole } = require("../middleware/auth");
 
 const router = express.Router();
@@ -30,6 +31,7 @@ router.post("/products/:id/comments", protect, requireRole("customer"), async (r
       customerName: req.user.name,
       body
     });
+    await Notification.create({ recipient: (await Product.findById(product._id).select("artisan")).artisan, type: "comment", title: "New product comment", body: `${req.user.name} commented on one of your products.`, link: "/seller/reviews" });
     res.status(201).json(comment);
   } catch (error) {
     res.status(500).json({ message: "Unable to post comment" });
