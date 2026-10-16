@@ -12,6 +12,9 @@ const userSchema = new mongoose.Schema(
     artisanReviewedAt: Date,
     phone: String,
     location: String,
+    address: { type: String, default: "" },
+    city: { type: String, default: "" },
+    pincode: { type: String, default: "" },
     craftType: String,
     story: String
   },

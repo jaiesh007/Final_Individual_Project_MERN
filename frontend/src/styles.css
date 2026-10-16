@@ -1539,3 +1539,23 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   .seller-order-actions { align-items: stretch; flex-direction: column; }
   .seller-order-actions select { width: 100%; }
 }
+
+
+/* Customer profile, location autofill, and order pagination */
+.delivery-location-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:8px 0; }
+.delivery-location-heading h3 { margin:0; }
+.location-button { display:inline-flex; align-items:center; justify-content:center; gap:7px; white-space:nowrap; }
+.location-privacy-note, .location-feedback { margin:6px 0 12px; color:var(--muted); font-size:.88rem; line-height:1.5; }
+.location-feedback { display:flex; align-items:center; gap:7px; color:var(--teal); }
+.profile-page { max-width:900px; margin:0 auto; }
+.profile-card { display:grid; gap:18px; padding:clamp(20px,4vw,34px); }
+.profile-card .form-grid { gap:16px; }
+.profile-card label { display:grid; gap:8px; font-weight:700; }
+.profile-card input, .profile-card textarea { width:100%; min-height:44px; padding:10px 12px; border:1px solid var(--line); border-radius:8px; outline-color:var(--teal); }
+.profile-actions { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+.order-pagination { margin-top:24px; }
+@media (max-width:640px) {
+  .delivery-location-heading { align-items:stretch; flex-direction:column; }
+  .delivery-location-heading .location-button { width:100%; }
+  .profile-card .form-grid { grid-template-columns:1fr; }
+}

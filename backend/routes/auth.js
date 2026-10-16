@@ -31,6 +31,10 @@ const publicUser = (user) => ({
   artisanStatus: user.artisanStatus || (user.role === "artisan" ? "approved" : "not-applicable"),
   artisanReviewNote: user.artisanReviewNote,
   location: user.location,
+  phone: user.phone,
+  address: user.address || "",
+  city: user.city || "",
+  pincode: user.pincode || "",
   craftType: user.craftType
 });
 
@@ -109,6 +113,42 @@ router.post("/login", authRateLimit, async (req, res) => {
 
 router.get("/me", protect, (req, res) => {
   res.json(publicUser(req.user));
+});
+
+router.put("/me", protect, async (req, res) => {
+  try {
+    const fields = ["name", "email", "phone", "location", "address", "city", "pincode"];
+    const updates = {};
+    for (const field of fields) {
+      if (Object.prototype.hasOwnProperty.call(req.body || {}, field)) {
+        if (typeof req.body[field] !== "string") {
+          return res.status(400).json({ message: "Profile fields must be text" });
+        }
+        const value = req.body[field].trim();
+        const maxLength = field === "address" ? 300 : field === "name" ? 100 : field === "email" ? 254 : 100;
+        if (value.length > maxLength) return res.status(400).json({ message: "One or more profile fields are too long" });
+        updates[field] = value;
+      }
+    }
+    if (Object.prototype.hasOwnProperty.call(updates, "name") && !updates.name) {
+      return res.status(400).json({ message: "Name is required" });
+    }
+    if (Object.prototype.hasOwnProperty.call(updates, "email")) {
+      updates.email = updates.email.toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(updates.email)) {
+        return res.status(400).json({ message: "Enter a valid email address" });
+      }
+      const existing = await User.findOne({ email: updates.email, _id: { $ne: req.user._id } });
+      if (existing) return res.status(409).json({ message: "That email is already registered" });
+    }
+    const user = await User.findByIdAndUpdate(req.user._id, { $set: updates }, { new: true, runValidators: true });
+    return res.json(publicUser(user));
+  } catch (error) {
+    if (error.code === 11000) return res.status(409).json({ message: "That email is already registered" });
+    if (error.name === "ValidationError") return res.status(400).json({ message: "Please check your profile details" });
+    console.error("Profile update failed:", error.message);
+    return res.status(500).json({ message: "Unable to update profile at this time" });
+  }
 });
 
 module.exports = router;
