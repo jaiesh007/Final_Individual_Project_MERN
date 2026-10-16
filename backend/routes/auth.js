@@ -28,9 +28,9 @@ router.post("/register", authRateLimit, async (req, res) => {
 
     if (typeof name !== "string" || !name.trim() ||
         !normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail) ||
-        typeof password !== "string" || password.length < 6) {
+        typeof password !== "string" || password.length < 8) {
       return res.status(400).json({
-        message: "Enter a name, valid email, and password with at least 6 characters"
+        message: "Enter a name, valid email, and password with at least 8 characters"
       });
     }
 
