@@ -3,7 +3,22 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const { protect } = require("../middleware/auth");
 
+
 const router = express.Router();
+const authAttempts = new Map();
+const authRateLimit = (req, res, next) => {
+  const now = Date.now();
+  const key = req.ip || req.socket?.remoteAddress || "unknown";
+  const current = authAttempts.get(key);
+  if (!current || now - current.startedAt >= 15 * 60 * 1000) {
+    authAttempts.set(key, { startedAt: now, count: 1 });
+    if (authAttempts.size > 5000) for (const [ip, attempt] of authAttempts) if (now - attempt.startedAt >= 15 * 60 * 1000) authAttempts.delete(ip);
+    return next();
+  }
+  if (current.count >= 10) return res.status(429).json({ message: "Too many authentication attempts. Please wait 15 minutes and try again." });
+  current.count += 1;
+  return next();
+};
 
 const createToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "7d" });
@@ -19,16 +34,16 @@ const publicUser = (user) => ({
   craftType: user.craftType
 });
 
-router.post("/register", async (req, res) => {
+router.post("/register", authRateLimit, async (req, res) => {
   try {
     const { name, email, password, phone, location, craftType, story } = req.body || {};
     const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
 
     if (typeof name !== "string" || !name.trim() ||
         !normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail) ||
-        typeof password !== "string" || password.length < 6) {
+        typeof password !== "string" || password.length < 8) {
       return res.status(400).json({
-        message: "Enter a name, valid email, and password with at least 6 characters"
+        message: "Enter a name, valid email, and password with at least 8 characters"
       });
     }
 
@@ -66,7 +81,7 @@ router.post("/register", async (req, res) => {
   }
 });
 
-router.post("/login", async (req, res) => {
+router.post("/login", authRateLimit, async (req, res) => {
   try {
     const { email, password } = req.body || {};
     if (typeof email !== "string" || typeof password !== "string" || !email.trim() || !password) {

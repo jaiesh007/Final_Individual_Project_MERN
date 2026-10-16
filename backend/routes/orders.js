@@ -3,12 +3,13 @@ const mongoose = require("mongoose");
 const Order = require("../models/Order");
 const Product = require("../models/Product");
 const { protect, requireRole } = require("../middleware/auth");
+const Notification = require("../models/Notification");
 
 const router = express.Router();
 const DELIVERY_FEE = 80;
 const allowedStatuses = ["Pending", "Confirmed", "Shipped", "Delivered", "Cancelled"];
 
-router.post("/", protect, async (req, res) => {
+router.post("/", protect, requireRole("customer"), async (req, res) => {
   const items = req.body && req.body.items;
   const shippingAddress = req.body && req.body.shippingAddress;
 
@@ -95,12 +96,17 @@ router.post("/", protect, async (req, res) => {
           pincode: shippingAddress.pincode.trim()
         },
         paymentMethod: "Cash on Delivery",
+        paymentStatus: "Pending",
         totalAmount: subtotal + DELIVERY_FEE,
         status: "Pending"
       }], { session });
       createdOrder = order;
     });
 
+    await Notification.create({ recipient: req.user._id, type: "order", title: "Order placed", body: `Your order ${createdOrder._id} was placed with Cash on Delivery.`, link: "/orders" });
+    const orderedProducts = await Product.find({ _id: { $in: createdOrder.items.map((item) => item.product) } }).select("artisan name");
+    const sellerIds = [...new Set(orderedProducts.map((product) => String(product.artisan)))];
+    await Notification.insertMany(sellerIds.map((recipient) => ({ recipient, type: "order", title: "New order received", body: `A customer placed an order containing your product.`, link: "/seller/orders" })));
     return res.status(201).json(createdOrder);
   } catch (error) {
     if (error.status) return res.status(error.status).json({ message: error.message });
@@ -120,6 +126,17 @@ router.get("/my-orders", protect, async (req, res) => {
   } catch (error) {
     console.error("Fetching customer orders failed:", error.message);
     res.status(500).json({ message: "Unable to fetch orders" });
+  }
+});
+
+router.get("/seller-orders", protect, requireRole("artisan"), async (req, res) => {
+  try {
+    const productIds = await Product.find({ artisan: req.user._id }).distinct("_id");
+    const orders = await Order.find({ "items.product": { $in: productIds } }).populate("user", "name email").populate("items.product", "name image artisan").sort({ createdAt: -1 }).limit(100);
+    res.json(orders);
+  } catch (error) {
+    console.error("Fetching seller orders failed:", error.message);
+    res.status(500).json({ message: "Unable to fetch seller orders" });
   }
 });
 

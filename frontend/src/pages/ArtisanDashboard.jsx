@@ -16,7 +16,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import api from "../api/axios.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useProducts } from "../hooks/useProducts.js";
-import CategoryRequestPanel from "../components/CategoryRequestPanel.jsx";
+import ArtisanSidebar from "../components/ArtisanSidebar.jsx";
 
 const emptyForm = {
   name: "",
@@ -173,7 +173,7 @@ const ArtisanDashboard = () => {
   );
 
   return (
-    <section className="dashboard-page artisan-dashboard">
+    <section className="dashboard-page artisan-dashboard"><div className="seller-dashboard-layout"><ArtisanSidebar /><div className="seller-dashboard-main">
       <div className="dashboard-header artisan-page-heading">
         <div>
           <span className="eyebrow">Artisan studio</span>
@@ -327,8 +327,7 @@ const ArtisanDashboard = () => {
           </form>
         </section>
       </div>
-      {user?.role === "artisan" && <CategoryRequestPanel />}
-    </section>
+    </div></div></section>
   );
 };
 

@@ -5,7 +5,7 @@ const userSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true },
-    password: { type: String, required: true, minlength: 6 },
+    password: { type: String, required: true, minlength: 8 },
     role: { type: String, enum: ["customer", "artisan", "admin"], default: "customer" },
     artisanStatus: { type: String, enum: ["not-applicable", "pending", "approved", "rejected"], default: function () { return this.role === "artisan" ? "approved" : "not-applicable"; } },
     artisanReviewNote: { type: String, default: "" },
