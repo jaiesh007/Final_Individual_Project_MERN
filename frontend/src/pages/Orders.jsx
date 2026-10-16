@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { CheckCircle2, Clock3, Package, Truck } from "lucide-react";
 import api from "../api/axios.js";
@@ -11,6 +12,10 @@ const Orders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 5;
+  const totalPages = Math.max(1, Math.ceil(orders.length / pageSize));
+  const visibleOrders = useMemo(() => orders.slice((page - 1) * pageSize, page * pageSize), [orders, page]);
   useEffect(() => {
     let active = true;
     if (!isLoggedIn || user?.role !== "customer") { setLoading(false); return () => { active = false; }; }
@@ -28,7 +33,7 @@ const Orders = () => {
     {error && <p className="notice" role="alert">{error}</p>}
     {loading && <p>Loading your orders…</p>}
     {!loading && !orders.length && <div className="empty-state"><Package size={28}/><h2>No orders yet</h2><p>Your purchases and their delivery progress will appear here.</p><Link className="primary-button" to="/shop">Explore handmade products</Link></div>}
-    <div className="order-history-list">{orders.map((order) => {
+    <div className="order-history-list">{visibleOrders.map((order) => {
       const current = steps.indexOf(order.status);
       const cancelled = order.status === "Cancelled";
       return <article className="order-tracking-card" key={order._id}>
@@ -39,6 +44,11 @@ const Orders = () => {
         <div className="order-tracking-footer"><span>Delivering to {order.shippingAddress?.city || "your address"}</span><Link to="/notifications">View updates</Link></div>
       </article>;
     })}</div>
+    {orders.length > pageSize && <nav className="pagination order-pagination" aria-label="Order history pages">
+      <button type="button" onClick={() => { setPage((current) => Math.max(1, current - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }} disabled={page === 1}><ChevronLeft size={17}/> Previous</button>
+      <span>Page <strong>{page}</strong> of <strong>{totalPages}</strong> · {orders.length} orders</span>
+      <button type="button" onClick={() => { setPage((current) => Math.min(totalPages, current + 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }} disabled={page >= totalPages}>Next <ChevronRight size={17}/></button>
+    </nav>}
   </section>;
 };
 export default Orders;
