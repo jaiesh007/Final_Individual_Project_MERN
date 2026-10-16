@@ -129,7 +129,18 @@ router.get("/my-orders", protect, async (req, res) => {
   }
 });
 
-router.get("/seller-orders", protect, requireRole("artisan"), async (req, res) => {\n  try {\n    const productIds = await Product.find({ artisan: req.user._id }).distinct("_id");\n    const orders = await Order.find({ "items.product": { $in: productIds } }).populate("user", "name email").populate("items.product", "name image artisan").sort({ createdAt: -1 }).limit(100);\n    res.json(orders);\n  } catch (error) {\n    console.error("Fetching seller orders failed:", error.message);\n    res.status(500).json({ message: "Unable to fetch seller orders" });\n  }\n});\n\nrouter.get("/", protect, requireRole("admin"), async (req, res) => {
+router.get("/seller-orders", protect, requireRole("artisan"), async (req, res) => {
+  try {
+    const productIds = await Product.find({ artisan: req.user._id }).distinct("_id");
+    const orders = await Order.find({ "items.product": { $in: productIds } }).populate("user", "name email").populate("items.product", "name image artisan").sort({ createdAt: -1 }).limit(100);
+    res.json(orders);
+  } catch (error) {
+    console.error("Fetching seller orders failed:", error.message);
+    res.status(500).json({ message: "Unable to fetch seller orders" });
+  }
+});
+
+router.get("/", protect, requireRole("admin"), async (req, res) => {
   try {
     const orders = await Order.find()
       .populate("user", "name email")
