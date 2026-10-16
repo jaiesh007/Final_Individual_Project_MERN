@@ -1,7 +1,7 @@
 const express = require("express");
 const crypto = require("crypto");
 const mongoose = require("mongoose");
-const Razorpay = require("razorpay");
+const https = require("https");
 const Product = require("../models/Product");
 const Order = require("../models/Order");
 const PaymentIntent = require("../models/PaymentIntent");
@@ -42,7 +42,7 @@ router.post("/create-order", protect, requireRole("customer"), async (req, res) 
     }
     const amount = Math.round((subtotal + DELIVERY_FEE) * 100);
     if (!Number.isSafeInteger(amount) || amount <= 0) return res.status(400).json({ message: "Invalid checkout amount" });
-    const razorpayOrder = await gateway.orders.create({ amount, currency: "INR", receipt: `market-${Date.now()}`, notes: { userId: String(req.user._id) } });
+    const razorpayOrder = await razorpayRequest("/v1/orders", { amount, currency: "INR", receipt: `market-${Date.now()}`, notes: { userId: String(req.user._id) } });
     const intent = await PaymentIntent.create({
       user: req.user._id, razorpayOrderId: razorpayOrder.id,
       items: [...quantities.entries()].map(([product, quantity]) => ({ product, quantity })),
