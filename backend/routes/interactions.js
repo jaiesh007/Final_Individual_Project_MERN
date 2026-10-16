@@ -31,7 +31,7 @@ router.post("/products/:id/comments", protect, requireRole("customer"), async (r
       customerName: req.user.name,
       body
     });
-    await Notification.create({ recipient: (await Product.findById(product._id).select("artisan")).artisan, type: "comment", title: "New product comment", body: `${req.user.name} commented on one of your products.`, link: "/seller/reviews" });
+    try { await Notification.create({ recipient: (await Product.findById(product._id).select("artisan")).artisan, type: "comment", title: "New product comment", body: `${req.user.name} commented on one of your products.`, link: "/seller/reviews" }); } catch (notificationError) { console.error("Comment notification failed:", notificationError.message); }
     res.status(201).json(comment);
   } catch (error) {
     res.status(500).json({ message: "Unable to post comment" });
