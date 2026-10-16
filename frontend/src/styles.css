@@ -1454,3 +1454,6 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   .product-card-actions { flex-direction: column; align-items: stretch; }
   .comment-author { align-items: flex-start; flex-direction: column; gap: 4px; }
 }
+
+.seller-messages-workspace .messages-page { max-width: none; margin: 0; padding: 0; }
+.seller-messages-workspace .messages-heading { margin-top: 0; }
