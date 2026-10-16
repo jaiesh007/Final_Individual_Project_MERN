@@ -18,7 +18,9 @@ const orderSchema = new mongoose.Schema(
       city: String,
       pincode: String
     },
-    paymentMethod: { type: String, default: "Cash on Delivery" },
+    paymentMethod: { type: String, enum: ["Cash on Delivery", "Razorpay"], default: "Cash on Delivery" },
+    paymentStatus: { type: String, enum: ["Pending", "Paid", "Failed"], default: "Pending" },
+    paymentId: { type: String, default: "" },
     totalAmount: { type: Number, required: true },
     status: {
       type: String,
