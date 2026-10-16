@@ -10,6 +10,9 @@ import AdminDashboard from "./pages/AdminDashboard.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
 import Wishlist from "./pages/Wishlist.jsx";
+import SellerCategories from "./pages/SellerCategories.jsx";
+import SellerReviews from "./pages/SellerReviews.jsx";
+import Messages from "./pages/Messages.jsx";
 
 const App = () => (
   <div className="app-shell">
@@ -22,6 +25,9 @@ const App = () => (
         <Route path="/cart" element={<Cart />} />
         <Route path="/wishlist" element={<Wishlist />} />
         <Route path="/dashboard" element={<ArtisanDashboard />} />
+        <Route path="/seller/categories" element={<SellerCategories />} />
+        <Route path="/seller/reviews" element={<SellerReviews />} />
+        <Route path="/messages" element={<Messages />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
