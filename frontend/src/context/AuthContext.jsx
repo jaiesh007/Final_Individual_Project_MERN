@@ -28,6 +28,13 @@ export const AuthProvider = ({ children }) => {
     return { ...data.user, approvalRequired: Boolean(data.approvalRequired), message: data.message };
   };
 
+  const updateProfile = async (profile) => {
+    const { data } = await api.put("/auth/me", profile);
+    localStorage.setItem("artisanUser", JSON.stringify(data));
+    setUser(data);
+    return data;
+  };
+
   const logout = () => {
     localStorage.removeItem("artisanToken");
     localStorage.removeItem("artisanUser");
@@ -40,6 +47,7 @@ export const AuthProvider = ({ children }) => {
     isLoggedIn: Boolean(user),
     login,
     register,
+    updateProfile,
     logout
   }), [user]);
 
