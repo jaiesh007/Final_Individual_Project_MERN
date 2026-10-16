@@ -10,10 +10,25 @@ const { protect, requireRole } = require("../middleware/auth");
 
 const router = express.Router();
 const DELIVERY_FEE = 80;
-const getGateway = () => {
-  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) return null;
-  return new Razorpay({ key_id: process.env.RAZORPAY_KEY_ID, key_secret: process.env.RAZORPAY_KEY_SECRET });
-};
+const paymentConfigured = () => Boolean(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET);
+const razorpayRequest = (pathname, payload) => new Promise((resolve, reject) => {
+  const body = JSON.stringify(payload);
+  const auth = Buffer.from(`${process.env.RAZORPAY_KEY_ID}:${process.env.RAZORPAY_KEY_SECRET}`).toString("base64");
+  const request = https.request({ hostname: "api.razorpay.com", path: pathname, method: "POST", headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) } }, (response) => {
+    let responseBody = "";
+    response.on("data", (chunk) => { responseBody += chunk; });
+    response.on("end", () => {
+      let parsed;
+      try { parsed = JSON.parse(responseBody); } catch { return reject(new Error("Payment provider returned an invalid response")); }
+      if (response.statusCode >= 200 && response.statusCode < 300) return resolve(parsed);
+      return reject(new Error(parsed.error?.description || "Payment provider could not create an order"));
+    });
+  });
+  request.setTimeout(15000, () => request.destroy(new Error("Payment provider timed out")));
+  request.on("error", reject);
+  request.write(body);
+  request.end();
+});
 const validateCheckout = (items, address) => {
   if (!Array.isArray(items) || !items.length || items.length > 50) return "Add between 1 and 50 products";
   if (!address || ["fullName", "phone", "address", "city", "pincode"].some((key) => typeof address[key] !== "string" || !address[key].trim())) return "Complete all shipping address fields";
@@ -22,8 +37,7 @@ const validateCheckout = (items, address) => {
 };
 
 router.post("/create-order", protect, requireRole("customer"), async (req, res) => {
-  const gateway = getGateway();
-  if (!gateway) return res.status(503).json({ message: "Online payments are not configured. Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to the backend environment to enable them." });
+  if (!paymentConfigured()) return res.status(503).json({ message: "Online payments are not configured. Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to the backend environment to enable them." });
   const items = req.body?.items;
   const shippingAddress = req.body?.shippingAddress;
   const validationError = validateCheckout(items, shippingAddress);
