@@ -4,6 +4,7 @@ import { ArrowUpRight, MessageCircle, Send } from "lucide-react";
 import api from "../api/axios.js";
 import { imageUrl } from "../api/assets.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import ArtisanSidebar from "../components/ArtisanSidebar.jsx";
 
 const Messages = () => {
   const { user, isLoggedIn } = useAuth();
