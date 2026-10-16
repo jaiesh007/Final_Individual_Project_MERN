@@ -135,7 +135,7 @@ router.put("/me", protect, async (req, res) => {
     }
     if (Object.prototype.hasOwnProperty.call(updates, "email")) {
       updates.email = updates.email.toLowerCase();
-      if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(updates.email)) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(updates.email)) {
         return res.status(400).json({ message: "Enter a valid email address" });
       }
       const existing = await User.findOne({ email: updates.email, _id: { $ne: req.user._id } });
