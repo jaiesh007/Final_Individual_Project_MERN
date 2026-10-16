@@ -107,7 +107,7 @@ router.post("/verify", protect, requireRole("customer"), async (req, res) => {
       await intent.save({ session });
       createdOrder = order;
     });
-    await Notification.create({ recipient: req.user._id, type: "order", title: "Payment confirmed", body: `Your payment was confirmed and order is ${createdOrder._id}.`, link: "/orders" });
+    try { await Notification.create({ recipient: req.user._id, type: "order", title: "Payment confirmed", body: `Your payment was confirmed and order is ${createdOrder._id}.`, link: "/orders" }); } catch (notificationError) { console.error("Payment notification failed:", notificationError.message); }
     res.status(201).json({ message: "Payment verified and order placed", order: createdOrder });
   } catch (error) {
     if (error.status) return res.status(error.status).json({ message: error.message });
