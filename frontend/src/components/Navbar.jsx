@@ -28,7 +28,7 @@ const Navbar = () => {
       <nav aria-label="Main navigation" className="navbar-links">
         <NavLink to="/">Home</NavLink>
         <NavLink to="/shop">Shop</NavLink>
-        {isCustomer && <><NavLink to="/orders"><Package size={15} /> Orders</NavLink><NavLink to="/messages"><MessageCircle size={15} /> Messages</NavLink></>}
+        {isCustomer && <><NavLink to="/orders"><Package size={15} /> Orders</NavLink><NavLink to="/profile">My profile</NavLink><NavLink to="/messages"><MessageCircle size={15} /> Messages</NavLink></>}
         {isAdmin && <NavLink to="/admin"><LayoutDashboard size={15} /> Admin</NavLink>}
         {isArtisan && <NavLink to="/dashboard"><Store size={15} /> Seller studio</NavLink>}
       </nav>
