@@ -39,7 +39,7 @@ const Register = () => {
         <div className="form-grid">
           <label>Full name<input name="name" value={form.name} onChange={update} placeholder="Your name" autoComplete="name" required /></label>
           <label>Email<input name="email" type="email" value={form.email} onChange={update} placeholder="you@example.com" autoComplete="email" required /></label>
-          <label>Password<input name="password" type="password" value={form.password} onChange={update} placeholder="At least 6 characters" minLength={6} autoComplete="new-password" required /></label>
+          <label>Password<input name="password" type="password" value={form.password} onChange={update} placeholder="At least 8 characters" minLength={8} autoComplete="new-password" required /></label>
           <label>Account type<select name="role" value={form.role} onChange={update}><option value="customer">Customer</option><option value="artisan">Artisan / seller (admin approval required)</option></select></label>
           <label>Location<input name="location" value={form.location} onChange={update} placeholder="City, state" /></label>
           {form.role === "artisan" && <label>Craft specialty<input name="craftType" value={form.craftType} onChange={update} placeholder="Pottery, weaving, carving…" required /></label>}
