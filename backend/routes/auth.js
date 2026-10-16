@@ -2,8 +2,10 @@ const express = require("express");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const { protect } = require("../middleware/auth");
+const { rateLimit } = require("express-rate-limit");
 
 const router = express.Router();
+const authRateLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, standardHeaders: "draft-7", legacyHeaders: false, message: { message: "Too many authentication attempts. Please wait 15 minutes and try again." } });
 
 const createToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "7d" });
@@ -19,7 +21,7 @@ const publicUser = (user) => ({
   craftType: user.craftType
 });
 
-router.post("/register", async (req, res) => {
+router.post("/register", authRateLimit, async (req, res) => {
   try {
     const { name, email, password, phone, location, craftType, story } = req.body || {};
     const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
@@ -66,7 +68,7 @@ router.post("/register", async (req, res) => {
   }
 });
 
-router.post("/login", async (req, res) => {
+router.post("/login", authRateLimit, async (req, res) => {
   try {
     const { email, password } = req.body || {};
     if (typeof email !== "string" || typeof password !== "string" || !email.trim() || !password) {
