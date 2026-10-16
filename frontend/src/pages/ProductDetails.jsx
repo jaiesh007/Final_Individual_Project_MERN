@@ -18,7 +18,12 @@ const ProductDetails = () => {
   const [commentDraft, setCommentDraft] = useState("");
   const [commentMessage, setCommentMessage] = useState("");
   const [commentBusy, setCommentBusy] = useState(false);
-  const [chatBusy, setChatBusy] = useState(false);\n  const [ratingData, setRatingData] = useState({ average: 0, count: 0, reviews: [] });\n  const [ratingValue, setRatingValue] = useState(5);\n  const [reviewDraft, setReviewDraft] = useState("");\n  const [ratingBusy, setRatingBusy] = useState(false);\n  const [ratingMessage, setRatingMessage] = useState("");
+  const [chatBusy, setChatBusy] = useState(false);
+  const [ratingData, setRatingData] = useState({ average: 0, count: 0, reviews: [] });
+  const [ratingValue, setRatingValue] = useState(5);
+  const [reviewDraft, setReviewDraft] = useState("");
+  const [ratingBusy, setRatingBusy] = useState(false);
+  const [ratingMessage, setRatingMessage] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -33,7 +38,11 @@ const ProductDetails = () => {
         }
       }
     };
-    const loadRatings = async () => {\n      try { const { data } = await api.get(`/ratings/${id}`); if (active) setRatingData(data); }\n      catch { if (active) setRatingData({ average: 0, count: 0, reviews: [] }); }\n    };\n    const loadComments = async () => {
+    const loadRatings = async () => {
+      try { const { data } = await api.get(`/ratings/${id}`); if (active) setRatingData(data); }
+      catch { if (active) setRatingData({ average: 0, count: 0, reviews: [] }); }
+    };
+    const loadComments = async () => {
       try {
         const { data } = await api.get(`/interactions/products/${id}/comments`);
         if (active) setComments(data);
@@ -64,7 +73,19 @@ const ProductDetails = () => {
     } finally { setCommentBusy(false); }
   };
 
-  const submitReview = async (event) => {\n    event.preventDefault();\n    if (!isLoggedIn) { navigate("/login"); return; }\n    if (user?.role !== "customer") { setRatingMessage("Only customer accounts can submit reviews."); return; }\n    setRatingBusy(true); setRatingMessage("");\n    try {\n      await api.post(`/ratings/${id}`, { rating: ratingValue, review: reviewDraft.trim() });\n      const { data } = await api.get(`/ratings/${id}`); setRatingData(data); setReviewDraft(""); setRatingMessage("Your rating was saved.");\n    } catch (error) { setRatingMessage(error.response?.data?.message || "Could not save your rating."); }\n    finally { setRatingBusy(false); }\n  };\n\n  const startChat = async () => {
+  const submitReview = async (event) => {
+    event.preventDefault();
+    if (!isLoggedIn) { navigate("/login"); return; }
+    if (user?.role !== "customer") { setRatingMessage("Only customer accounts can submit reviews."); return; }
+    setRatingBusy(true); setRatingMessage("");
+    try {
+      await api.post(`/ratings/${id}`, { rating: ratingValue, review: reviewDraft.trim() });
+      const { data } = await api.get(`/ratings/${id}`); setRatingData(data); setReviewDraft(""); setRatingMessage("Your rating was saved.");
+    } catch (error) { setRatingMessage(error.response?.data?.message || "Could not save your rating."); }
+    finally { setRatingBusy(false); }
+  };
+
+  const startChat = async () => {
     if (!isLoggedIn) { navigate("/login"); return; }
     if (user?.role !== "customer") { setCommentMessage("Chat with a seller is available from a customer account."); return; }
     setChatBusy(true);
