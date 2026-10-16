@@ -62,7 +62,10 @@ const Messages = () => {
   if (!isLoggedIn) return <section className="page-section"><h1>Messages</h1><p>Log in to chat with artisans about their products.</p><Link className="primary-button" to="/login">Log in</Link></section>;
   if (!["customer", "artisan"].includes(user?.role)) return <section className="page-section"><h1>Messages</h1><p>Messaging is available to customers and sellers.</p></section>;
 
-  return <section className="messages-page">
+  return <section className={user?.role === "artisan" ? "seller-workspace-page seller-messages-workspace" : "messages-page"}>
+    {user?.role === "artisan" && <ArtisanSidebar />}
+    <main className={user?.role === "artisan" ? "seller-workspace-content" : ""}>
+    <div className="messages-page">
     <div className="messages-heading"><span className="eyebrow">DIRECT CONNECTION</span><h1>Messages</h1><p>Ask questions, confirm details, and connect about handmade products.</p></div>
     {notice && <p className="notice" role="status">{notice}</p>}
     <div className="messages-layout">
@@ -84,6 +87,8 @@ const Messages = () => {
         </> : <div className="thread-empty"><MessageCircle size={32} /><h2>Select a conversation</h2><p>Your customer and seller conversations will appear here.</p></div>}
       </section>
     </div>
+    </div>
+    </main>
   </section>;
 };
 
