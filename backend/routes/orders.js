@@ -9,7 +9,7 @@ const router = express.Router();
 const DELIVERY_FEE = 80;
 const allowedStatuses = ["Pending", "Confirmed", "Shipped", "Delivered", "Cancelled"];
 
-router.post("/", protect, async (req, res) => {
+router.post("/", protect, requireRole("customer"), async (req, res) => {
   const items = req.body && req.body.items;
   const shippingAddress = req.body && req.body.shippingAddress;
 
