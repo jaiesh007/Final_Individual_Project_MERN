@@ -33,7 +33,7 @@ router.post("/:productId", protect, requireRole("customer"), async (req, res) =>
       { $set: { rating, review, customerName: req.user.name } },
       { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true }
     );
-    await Notification.create({ recipient: product.artisan, type: "comment", title: "New product review", body: `${req.user.name} reviewed ${product.name}.`, link: "/seller/reviews" });
+    try { await Notification.create({ recipient: product.artisan, type: "comment", title: "New product review", body: `${req.user.name} reviewed ${product.name}.`, link: "/seller/reviews" }); } catch (notificationError) { console.error("Review notification failed:", notificationError.message); }
     res.status(201).json(result);
   } catch (error) {
     if (error.code === 11000) return res.status(409).json({ message: "A review already exists. Please try again." });
