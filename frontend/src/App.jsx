@@ -12,7 +12,10 @@ import Register from "./pages/Register.jsx";
 import Wishlist from "./pages/Wishlist.jsx";
 import SellerCategories from "./pages/SellerCategories.jsx";
 import SellerReviews from "./pages/SellerReviews.jsx";
-import Messages from "./pages/Messages.jsx";\nimport Orders from "./pages/Orders.jsx";\nimport Notifications from "./pages/Notifications.jsx";\nimport SellerOrders from "./pages/SellerOrders.jsx";
+import Messages from "./pages/Messages.jsx";
+import Orders from "./pages/Orders.jsx";
+import Notifications from "./pages/Notifications.jsx";
+import SellerOrders from "./pages/SellerOrders.jsx";
 
 const App = () => (
   <div className="app-shell">
@@ -27,7 +30,10 @@ const App = () => (
         <Route path="/dashboard" element={<ArtisanDashboard />} />
         <Route path="/seller/categories" element={<SellerCategories />} />
         <Route path="/seller/reviews" element={<SellerReviews />} />
-        <Route path="/messages" element={<Messages />} />\n        <Route path="/orders" element={<Orders />} />\n        <Route path="/notifications" element={<Notifications />} />\n        <Route path="/seller/orders" element={<SellerOrders />} />
+        <Route path="/messages" element={<Messages />} />
+        <Route path="/orders" element={<Orders />} />
+        <Route path="/notifications" element={<Notifications />} />
+        <Route path="/seller/orders" element={<SellerOrders />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
