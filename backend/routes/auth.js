@@ -2,10 +2,10 @@ const express = require("express");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const { protect } = require("../middleware/auth");
-const { rateLimit } = require("express-rate-limit");
+
 
 const router = express.Router();
-const authRateLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, standardHeaders: "draft-7", legacyHeaders: false, message: { message: "Too many authentication attempts. Please wait 15 minutes and try again." } });
+const authAttempts = new Map();\nconst authRateLimit = (req, res, next) => {\n  const now = Date.now();\n  const key = req.ip || req.socket?.remoteAddress || "unknown";\n  const current = authAttempts.get(key);\n  if (!current || now - current.startedAt >= 15 * 60 * 1000) {\n    authAttempts.set(key, { startedAt: now, count: 1 });\n    if (authAttempts.size > 5000) for (const [ip, attempt] of authAttempts) if (now - attempt.startedAt >= 15 * 60 * 1000) authAttempts.delete(ip);\n    return next();\n  }\n  if (current.count >= 10) return res.status(429).json({ message: "Too many authentication attempts. Please wait 15 minutes and try again." });\n  current.count += 1;\n  return next();\n};
 
 const createToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "7d" });
