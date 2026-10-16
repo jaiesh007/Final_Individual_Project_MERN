@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Minus, Plus, Trash2, ShieldCheck, CreditCard, Truck } from "lucide-react";
+import { Minus, Plus, Trash2, ShieldCheck, CreditCard, Truck, MapPin, LoaderCircle } from "lucide-react";
 import { useState } from "react";
 import api from "../api/axios.js";
 import { imageUrl } from "../api/assets.js";
@@ -25,9 +25,50 @@ const Cart = () => {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("cod");
-  const [address, setAddress] = useState(initialAddress);
+  const [address, setAddress] = useState(() => ({
+    fullName: user?.name || "",
+    phone: user?.phone || "",
+    address: user?.address || "",
+    city: user?.city || "",
+    pincode: user?.pincode || ""
+  }));
+  const [locationBusy, setLocationBusy] = useState(false);
+  const [locationMessage, setLocationMessage] = useState("");
 
   const updateAddress = (event) => setAddress((current) => ({ ...current, [event.target.name]: event.target.value }));
+
+  const useCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationMessage("Your browser does not support location detection. Please enter the address manually.");
+      return;
+    }
+    setLocationBusy(true);
+    setLocationMessage("Requesting location permission…");
+    navigator.geolocation.getCurrentPosition(async ({ coords }) => {
+      try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(coords.latitude)}&lon=${encodeURIComponent(coords.longitude)}`);
+        if (!response.ok) throw new Error("Address lookup failed");
+        const result = await response.json();
+        const parts = result.address || {};
+        const street = [parts.house_number, parts.road, parts.neighbourhood || parts.suburb].filter(Boolean).join(" ");
+        const city = parts.city || parts.town || parts.village || parts.county || "";
+        setAddress((current) => ({
+          ...current,
+          address: street || result.display_name || current.address,
+          city: city || current.city,
+          pincode: parts.postcode || current.pincode
+        }));
+        setLocationMessage("Location found. Please check the address before placing your order.");
+      } catch {
+        setLocationMessage("We couldn't convert your location into an address. Please enter it manually.");
+      } finally {
+        setLocationBusy(false);
+      }
+    }, (error) => {
+      setLocationBusy(false);
+      setLocationMessage(error.code === 1 ? "Location permission was denied. You can enter the delivery address manually." : "Could not detect your location. Please enter the delivery address manually.");
+    }, { enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 });
+  };
 
   const placeOrder = async (event) => {
     event.preventDefault();
@@ -84,7 +125,9 @@ const Cart = () => {
           <div className="cart-list">{items.map((item) => <article className="cart-row" key={item._id}><Link to={`/products/${item._id}`}><img src={imageUrl(item.image)} alt={item.name}/></Link><div><h3><Link to={`/products/${item._id}`}>{item.name}</Link></h3><span>₹{Number(item.price).toLocaleString("en-IN")}</span></div><div className="quantity-control"><button type="button" aria-label={`Decrease ${item.name} quantity`} disabled={item.quantity <= 1} onClick={() => updateQuantity(item._id, item.quantity - 1)}><Minus size={15}/></button><strong>{item.quantity}</strong><button type="button" aria-label={`Increase ${item.name} quantity`} disabled={item.quantity >= 100} onClick={() => updateQuantity(item._id, item.quantity + 1)}><Plus size={15}/></button></div><button type="button" className="icon-danger" aria-label={`Remove ${item.name}`} onClick={() => removeFromCart(item._id)}><Trash2 size={18}/></button></article>)}</div>
           <aside className="order-summary"><h2>Order summary</h2><div><span>Subtotal</span><strong>₹{total.toLocaleString("en-IN")}</strong></div><div><span>Delivery</span><strong>₹{DELIVERY_FEE}</strong></div><div className="grand-total"><span>Total</span><strong>₹{(total + DELIVERY_FEE).toLocaleString("en-IN")}</strong></div>
             <form className="checkout-form" onSubmit={placeOrder}>
-              <h3>Delivery address</h3>
+              <div className="delivery-location-heading"><h3>Delivery address</h3><button type="button" className="secondary-button location-button" onClick={useCurrentLocation} disabled={locationBusy}><MapPin size={16}/>{locationBusy ? "Finding location…" : "Use my current location"}</button></div>
+              <p className="location-privacy-note">Your browser will ask permission. Coordinates are sent to OpenStreetMap to look up an address; review the result before ordering.</p>
+              {locationMessage && <p className="location-feedback" role="status">{locationBusy && <LoaderCircle size={15} />}{locationMessage}</p>}
               <label>Full name<input name="fullName" value={address.fullName} onChange={updateAddress} autoComplete="name" maxLength={100} required/></label>
               <label>Phone number<input name="phone" value={address.phone} onChange={updateAddress} type="tel" autoComplete="tel" pattern="[0-9+() -]{8,20}" maxLength={20} required/></label>
               <label>Street address<textarea name="address" value={address.address} onChange={updateAddress} autoComplete="street-address" maxLength={300} rows={2} required/></label>
