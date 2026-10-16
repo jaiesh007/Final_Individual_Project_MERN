@@ -16,6 +16,7 @@ import Messages from "./pages/Messages.jsx";
 import Orders from "./pages/Orders.jsx";
 import Notifications from "./pages/Notifications.jsx";
 import SellerOrders from "./pages/SellerOrders.jsx";
+import Profile from "./pages/Profile.jsx";
 
 const App = () => (
   <div className="app-shell">
@@ -32,6 +33,7 @@ const App = () => (
         <Route path="/seller/reviews" element={<SellerReviews />} />
         <Route path="/messages" element={<Messages />} />
         <Route path="/orders" element={<Orders />} />
+        <Route path="/profile" element={<Profile />} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/seller/orders" element={<SellerOrders />} />
         <Route path="/admin" element={<AdminDashboard />} />
