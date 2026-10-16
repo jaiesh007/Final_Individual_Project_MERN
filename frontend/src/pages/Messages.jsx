@@ -8,6 +8,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 const Messages = () => {
   const { user, isLoggedIn } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+  const requestedConversation = searchParams.get("conversation");
   const [conversations, setConversations] = useState([]);
   const [active, setActive] = useState(null);
   const [draft, setDraft] = useState("");
@@ -19,19 +20,18 @@ const Messages = () => {
     try {
       const { data } = await api.get("/interactions/conversations");
       setConversations(data);
-      const requested = searchParams.get("conversation");
-      const selected = data.find((item) => item._id === requested) || data[0];
+      const selected = data.find((item) => item._id === requestedConversation) || data[0];
       if (selected) {
         const response = await api.get(`/interactions/conversations/${selected._id}`);
         setActive(response.data);
-        if (requested !== selected._id) setSearchParams({ conversation: selected._id }, { replace: true });
+        if (requestedConversation !== selected._id) setSearchParams({ conversation: selected._id }, { replace: true });
       } else setActive(null);
     } catch {
       setNotice("Could not load messages. Please check your connection and try again.");
     } finally { setLoading(false); }
   };
 
-  useEffect(() => { if (isLoggedIn && ["customer", "artisan"].includes(user?.role)) loadConversations(); else setLoading(false); }, [isLoggedIn, user?.id, user?.role]);
+  useEffect(() => { if (isLoggedIn && ["customer", "artisan"].includes(user?.role)) loadConversations(); else setLoading(false); }, [isLoggedIn, user?.id, user?.role, requestedConversation]);
 
   const openConversation = async (id) => {
     try {
