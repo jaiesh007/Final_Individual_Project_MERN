@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const Order = require("../models/Order");
 const Product = require("../models/Product");
 const { protect, requireRole } = require("../middleware/auth");
+const Notification = require("../models/Notification");
 
 const router = express.Router();
 const DELIVERY_FEE = 80;
@@ -95,12 +96,17 @@ router.post("/", protect, async (req, res) => {
           pincode: shippingAddress.pincode.trim()
         },
         paymentMethod: "Cash on Delivery",
+        paymentStatus: "Pending",
         totalAmount: subtotal + DELIVERY_FEE,
         status: "Pending"
       }], { session });
       createdOrder = order;
     });
 
+    await Notification.create({ recipient: req.user._id, type: "order", title: "Order placed", body: `Your order ${createdOrder._id} was placed with Cash on Delivery.`, link: "/orders" });
+    const orderedProducts = await Product.find({ _id: { $in: createdOrder.items.map((item) => item.product) } }).select("artisan name");
+    const sellerIds = [...new Set(orderedProducts.map((product) => String(product.artisan)))];
+    await Notification.insertMany(sellerIds.map((recipient) => ({ recipient, type: "order", title: "New order received", body: `A customer placed an order containing your product.`, link: "/seller/orders" })));
     return res.status(201).json(createdOrder);
   } catch (error) {
     if (error.status) return res.status(error.status).json({ message: error.message });
@@ -123,7 +129,7 @@ router.get("/my-orders", protect, async (req, res) => {
   }
 });
 
-router.get("/", protect, requireRole("admin"), async (req, res) => {
+router.get("/seller-orders", protect, requireRole("artisan"), async (req, res) => {\n  try {\n    const productIds = await Product.find({ artisan: req.user._id }).distinct("_id");\n    const orders = await Order.find({ "items.product": { $in: productIds } }).populate("user", "name email").populate("items.product", "name image artisan").sort({ createdAt: -1 }).limit(100);\n    res.json(orders);\n  } catch (error) {\n    console.error("Fetching seller orders failed:", error.message);\n    res.status(500).json({ message: "Unable to fetch seller orders" });\n  }\n});\n\nrouter.get("/", protect, requireRole("admin"), async (req, res) => {
   try {
     const orders = await Order.find()
       .populate("user", "name email")
